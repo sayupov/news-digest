@@ -1,284 +1,279 @@
 #!/usr/bin/env python3
-"""Ежедневная сводка новостей: RSS -> Gemini -> Telegram.
-Только стандартная библиотека Python, ничего устанавливать не нужно.
-
-Режимы:  python digest.py news     (ежедневный отчёт, по умолчанию)
-         python digest.py weekly   (расширенный еженедельный отчёт)
-Переменные окружения:
-  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GEMINI_API_KEY  (секреты GitHub)
-  GEMINI_MODEL   (необязательно: модель, которую пробовать первой)
-  DRY_RUN=1      (ничего не отправлять, только показать, что получилось)
-  CONFIG_PATH    (необязательно, путь к другому config.json, для тестов)
+"""News & Events Intelligence: RSS/Atom -> grounded Gemini digest -> Telegram.
+Python standard library only. Python 3.12+.
 """
-import json, os, sys, re, html, urllib.request, urllib.parse, urllib.error
+import hashlib
+import html
+import json
+import logging
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-DRY = os.environ.get("DRY_RUN") == "1"
-UA = {"User-Agent": "Mozilla/5.0 (news-digest-bot)"}
-
-
-def http_get(url, timeout=25):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read()
+LOG = logging.getLogger('digest')
+BASE = Path(__file__).resolve().parent
+USER_AGENT = 'NewsEventsIntelligence/2.0 (RSS reader; Python urllib)'
+MAX_BYTES = 3_000_000
 
 
-def strip_tags(s):
-    s = re.sub(r"<[^>]+>", " ", s or "")
-    return re.sub(r"\s+", " ", html.unescape(s)).strip()
-
-
-def parse_date(text):
-    if not text:
-        return None
-    text = text.strip()
-    try:
-        d = parsedate_to_datetime(text)
-    except Exception:
+def request(url, *, data=None, headers=None, timeout=25, attempts=3):
+    if urllib.parse.urlsplit(url).scheme != 'https':
+        raise ValueError('Only HTTPS endpoints supported')
+    hdr = {'User-Agent': USER_AGENT, 'Accept': 'application/atom+xml, application/rss+xml, application/xml, text/xml, application/json, text/html;q=0.8'}
+    hdr.update(headers or {})
+    for attempt in range(attempts):
         try:
-            d = datetime.fromisoformat(text.replace("Z", "+00:00"))
-        except Exception:
-            return None
-    if d.tzinfo is None:
-        d = d.replace(tzinfo=timezone.utc)
-    return d
+            req = urllib.request.Request(url, data=data, headers=hdr)
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                payload = response.read(MAX_BYTES + 1)
+                if len(payload) > MAX_BYTES:
+                    raise ValueError('Response exceeds 3 MB')
+                return payload
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (429, 500, 502, 503, 504) or attempt + 1 == attempts:
+                raise RuntimeError(f'HTTP {exc.code} for {urllib.parse.urlsplit(url).netloc}') from exc
+        except (urllib.error.URLError, TimeoutError):
+            if attempt + 1 == attempts:
+                raise
+        time.sleep(2 ** attempt)
 
 
 def local(tag):
-    return tag.rsplit("}", 1)[-1]
+    return tag.rsplit('}', 1)[-1]
 
 
-def parse_feed(xml_bytes):
-    root = ET.fromstring(xml_bytes)
-    out = []
-    for el in root.iter():
-        if local(el.tag) not in ("item", "entry"):
-            continue
-        d = {"title": "", "link": "", "summary": "", "date": None}
-        for ch in el:
-            t = local(ch.tag)
-            if t == "title":
-                d["title"] = strip_tags(ch.text)
-            elif t == "link":
-                d["link"] = ch.attrib.get("href") or (ch.text or "").strip()
-            elif t in ("description", "summary", "content") and not d["summary"]:
-                d["summary"] = strip_tags(ch.text)[:400]
-            elif t in ("pubDate", "published", "updated", "date") and not d["date"]:
-                d["date"] = parse_date(ch.text)
-        if d["title"]:
-            out.append(d)
-    return out
+def strip_tags(s):
+    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]*>', ' ', s or ''))).strip()
 
 
-def collect(feeds, per_feed, hours_back, total):
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours_back)
-    items, report = [], []
-    for url in feeds:
+def parse_date(value):
+    if not value:
+        return None
+    try:
+        dt = parsedate_to_datetime(value)
+    except (ValueError, TypeError, IndexError):
         try:
-            entries = parse_feed(http_get(url))
-        except Exception as e:  # лента не открылась - идём дальше, но сообщаем
-            report.append(f"НЕ РАБОТАЕТ: {url} ({type(e).__name__}: {e})")
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def parse_feed(payload, source):
+    # RSS / Atom supplied by trusted configured sources (stdlib parser).
+    root = ET.fromstring(payload)
+    records = []
+    for entry in root.iter():
+        if local(entry.tag) not in ('item', 'entry'):
             continue
-        fresh = [e for e in entries if e["date"] is None or e["date"] >= cutoff]
-        report.append(f"ok: {url} (записей: {len(entries)}, свежих: {len(fresh)})")
-        host = urllib.parse.urlparse(url).netloc
-        for e in fresh[:per_feed]:
-            e["source"] = host
-            items.append(e)
-    seen, uniq = set(), []
-    for e in items:
-        key = re.sub(r"\W+", "", e["title"].lower())[:80]
-        if key not in seen:
-            seen.add(key)
-            uniq.append(e)
-    return uniq[:total], report
+        record = {'title': '', 'link': '', 'summary': '', 'date': None, 'source': source}
+        for child in entry:
+            name = local(child.tag)
+            if name == 'title' and not record['title']:
+                record['title'] = strip_tags(''.join(child.itertext()))
+            elif name == 'link':
+                candidate = child.attrib.get('href', '') or (child.text or '').strip()
+                relation = child.attrib.get('rel', 'alternate')
+                if candidate and relation == 'alternate':
+                    record['link'] = candidate
+            elif name in ('summary', 'description', 'encoded', 'content') and not record['summary']:
+                record['summary'] = strip_tags(''.join(child.itertext()))[:700]
+            elif name in ('pubDate', 'published', 'updated', 'date') and record['date'] is None:
+                record['date'] = parse_date(child.text)
+        if record['title'] and record['link'] and urllib.parse.urlsplit(record['link']).scheme == 'https':
+            records.append(record)
+    return records
 
 
-MODEL_CANDIDATES = [
-    "gemini-3.5-flash-lite",
-    "gemini-flash-lite-latest",
-    "gemini-3.5-flash",
-    "gemini-flash-latest",
-    "gemini-3.8-flash",
-]
+def identity(item):
+    url = urllib.parse.urlsplit(item['link'])
+    query = [(k, v) for k, v in urllib.parse.parse_qsl(url.query) if not k.lower().startswith(('utm_', 'fbclid', 'gclid'))]
+    canonical = urllib.parse.urlunsplit((url.scheme, url.netloc.lower(), url.path.rstrip('/'), urllib.parse.urlencode(query), ''))
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
 
-def gemini(prompt):
-    """Пробует модели по очереди: Google часто убирает старые модели
-    или обнуляет бесплатную квоту. Следующая модель берётся при 404/403/429."""
-    key = os.environ["GEMINI_API_KEY"]
-    candidates = ([os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else []) + MODEL_CANDIDATES
-    errors = []
-    for model in candidates:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        body = json.dumps({
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2},
-        }).encode()
-        req = urllib.request.Request(url, data=body, headers={
-            "Content-Type": "application/json", "x-goog-api-key": key})
+def collect(feeds, *, kind, hours_back, per_feed, now):
+    cutoff = now - timedelta(hours=hours_back)
+    collected, status = [], []
+    for feed_url in feeds:
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:
-                data = json.load(r)
-            text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            print(f"Модель Gemini: {model}")
-            return text
-        except urllib.error.HTTPError as e:
-            detail = e.read().decode(errors="replace")[:300].replace("\n", " ")
-            errors.append(f"{model}: HTTP {e.code} {detail}")
-            print(f"Модель {model} не подошла: HTTP {e.code}")
-            if e.code in (403, 404, 429, 400):
-                continue
-            raise RuntimeError("; ".join(errors))
-        except (KeyError, IndexError, TypeError):
-            errors.append(f"{model}: неожиданный ответ")
+            records = parse_feed(request(feed_url), urllib.parse.urlsplit(feed_url).netloc)
+            records = [r for r in records if r['date'] and cutoff <= r['date'] <= now + timedelta(hours=3)] if kind == 'news' else records
+            records.sort(key=lambda r: r['date'] or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+            for record in records[:per_feed]:
+                record['kind'] = kind
+                collected.append(record)
+            status.append({'feed': feed_url, 'status': 'ok', 'count': len(records)})
+        except (ValueError, ET.ParseError, RuntimeError, urllib.error.URLError, TimeoutError) as exc:
+            LOG.warning('Feed error: %s (%s)', feed_url, exc)
+            status.append({'feed': feed_url, 'status': 'error', 'reason': str(exc)[:180]})
+    return collected, status
+
+
+def load_state(path):
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(path, state):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
+    tmp.replace(path)
+
+
+def select_items(items, state, *, total, now, allow_seen=False):
+    unique, keys = [], set()
+    for item in sorted(items, key=lambda r: r['date'] or datetime.min.replace(tzinfo=timezone.utc), reverse=True):
+        key = identity(item)
+        title_key = re.sub(r'\W+', '', item['title'].casefold())
+        if key in keys or title_key in keys:
             continue
-    raise RuntimeError("Ни одна модель Gemini не сработала:\n" + "\n".join(errors))
-
-
-def telegram(text):
-    token, chat = os.environ["TELEGRAM_BOT_TOKEN"], os.environ["TELEGRAM_CHAT_ID"]
-    chunks, cur = [], ""
-    for para in text.split("\n"):
-        if len(cur) + len(para) + 1 > 3800:
-            chunks.append(cur)
-            cur = ""
-        cur += para + "\n"
-    if cur.strip():
-        chunks.append(cur)
-    for c in chunks:
-        data = urllib.parse.urlencode({
-            "chat_id": chat, "text": c, "disable_web_page_preview": "true"}).encode()
-        urllib.request.urlopen(urllib.request.Request(
-            f"https://api.telegram.org/bot{token}/sendMessage", data=data), timeout=30)
-
-
-COMMON_RULES = """Ты - персональный ИИ-аналитик по новым технологиям, ИИ, ИИ-агентам, автоматизации, цифровой трансформации и технологическим мероприятиям. Все отчёты пиши на русском языке; иностранные материалы переводи без искажения смысла.
-
-НАПРАВЛЕНИЯ МОНИТОРИНГА:
-{directions}
-
-ЖЁСТКИЕ ПРАВИЛА ДОСТОВЕРНОСТИ:
-1. Используй ТОЛЬКО записи из блока «ЗАПИСИ» ниже. Ничего не добавляй из своих знаний: никаких выдуманных фактов, цифр, дат, цитат, цен, мероприятий.
-2. У тебя нет доступа к интернету и ты не можешь проверять информацию по независимым источникам. Поэтому НЕ пиши, что новость «подтверждена независимыми источниками». Если одну и ту же новость сообщают несколько записей из списка, так и напиши («сообщают N источников из списка»). Иначе помечай: «независимо не проверено».
-3. Оценка достоверности (высокая / средняя / низкая) отражает только тип источника и то, что видно в записи: официальный блог компании = выше, пересказ или реклама = ниже. Заявления компаний о своих продуктах не выдавай за подтверждённые факты, пиши «компания заявляет».
-4. Если в записи нет даты, цены, срока регистрации или другой детали, пиши «не указано». Не домысливай.
-5. Исключай дубли и рекламу без информационной ценности. Не включай прошедшие мероприятия в перечень предстоящих.
-6. Оценка приоритета X/10 - это твоя приблизительная экспертная оценка по весам: актуальность 25%, практическая применимость 30%, новизна 20%, надёжность источника 15%, соответствие интересам 10%. Пиши её как «оценка (приблизительная)».
-7. Строго разделяй: ФАКТЫ (то, что сказано в записи), АНАЛИЗ (твои выводы из фактов), ПРЕДПОЛОЖЕНИЯ (гипотезы, требующие проверки), ПРОГНОЗЫ (возможные сценарии, не утверждения). Указывай неопределённости и уровень уверенности.
-8. Главный принцип: не количество, а достоверность, польза и своевременность. Если данных мало, пиши короче и прямо скажи, чего не хватает. Лучше «данных нет», чем выдумка.
-9. Формат: ОБЫЧНЫЙ ТЕКСТ для Telegram. Не используй markdown-символы (**, ##, |таблицы|, ```). Заголовки пиши ЗАГЛАВНЫМИ буквами. Таблицы заменяй строками вида: Название | Дата | Место | Формат | Регистрация | Ссылка.
-10. К каждому пункту давай ссылку из записи (первоисточник = ссылка из записи; если это пересказ, укажи это).
-
-Дата: {today}. Часовой пояс пользователя: {tz}.
-Источники лент (если какая-то не открылась, об этом сказано в служебной строке, не выдумывай её содержимое).
-"""
-
-DAILY_FORMAT = """
-ФОРМАТ ЕЖЕДНЕВНОГО ОТЧЁТА:
-
-NEWS & EVENTS INTELLIGENCE
-Дата: {today}
-
-ГЛАВНЫЕ ТЕХНОЛОГИЧЕСКИЕ НОВОСТИ
-(до 5-10 самых значимых, но не больше, чем позволяют данные. Для каждой:)
-Название
-Краткое содержание (факты): 2-3 предложения.
-Почему важно (анализ): ...
-Практическая польза: конкретный пример.
-Источник: ссылка. Достоверность: высокая/средняя/низкая. Оценка (приблизительная): X/10.
-
-НОВЫЕ ИИ-ИНСТРУМЕНТЫ
-(3-5 инструментов: краткое описание, стоимость только если она указана в записи, ссылка. Если инструментов в данных нет, напиши об этом.)
-
-ПРЕДСТОЯЩИЕ МЕРОПРИЯТИЯ
-(Ищи только среди записей с пометкой [мероприятия]. Нужны: название и организатор, дата и время с часовым поясом, город или онлайн, тематика, стоимость (если указана), срок регистрации (если указан), ссылка, практическая польза. Если таких записей нет, прямо напиши: «Источники мероприятий не подключены или подходящих данных нет», и ничего не придумывай. Регион интереса: {event_locations}.)
-
-ЧТО РЕКОМЕНДУЮ ИЗУЧИТЬ
-(3 наиболее полезных материала из записей, с пояснением.)
-
-ЧТО МОЖНО ПРИМЕНИТЬ НА ПРАКТИКЕ
-(конкретные идеи для создания ИИ-агентов, анализа данных, цифровизации госуправления; помечай их как предположения.)
-
-В КОНЦЕ:
-Неопределённости и ограничения данных: 2-3 строки.
-Уровень уверенности: высокий / средний / низкий.
-"""
-
-WEEKLY_FORMAT = """
-ФОРМАТ ЕЖЕНЕДЕЛЬНОГО АНАЛИТИЧЕСКОГО ОТЧЁТА:
-
-NEWS & EVENTS INTELLIGENCE - НЕДЕЛЬНЫЙ ОБЗОР
-Период и дата: {today}
-
-1. ОСНОВНЫЕ ТЕХНОЛОГИЧЕСКИЕ ТРЕНДЫ (на основании записей за неделю; отметь, на чём основан каждый вывод)
-2. ВАЖНЕЙШИЕ ИЗМЕНЕНИЯ В ИИ
-3. ПЕРСПЕКТИВНЫЕ ИНСТРУМЕНТЫ
-4. НОВЫЕ ВОЗМОЖНОСТИ ДЛЯ АВТОМАТИЗАЦИИ
-5. ПРЕДСТОЯЩИЕ МЕРОПРИЯТИЯ НА 30 ДНЕЙ (только из записей [мероприятия]; если данных нет, прямо скажи это)
-6. ПРАКТИЧЕСКИЕ РЕКОМЕНДАЦИИ (помечай как анализ или предположения)
-7. РИСКИ И ОГРАНИЧЕНИЯ
-8. ТРИ ПРИОРИТЕТНЫХ ДЕЙСТВИЯ НА СЛЕДУЮЩУЮ НЕДЕЛЮ
-
-В разделах разделяй факты / анализ / предположения / прогнозы. В конце: неопределённости и уровень уверенности.
-"""
+        keys.update((key, title_key))
+        if not allow_seen and key in state:
+            continue
+        item['id'] = key
+        unique.append(item)
+        if len(unique) == total:
+            break
+    return unique
 
 
 def fmt_items(items):
-    lines = []
-    for i, e in enumerate(items, 1):
-        d = e["date"].strftime("%Y-%m-%d %H:%M UTC") if e["date"] else "дата не указана"
-        kind = "[мероприятия]" if e.get("kind") == "events" else "[новости]"
-        lines.append(f"[{i}] {kind} {e['title']} | {e['source']} | {d} | {e['link']}\n    {e['summary']}")
-    return "\n".join(lines)
+    output = []
+    for n, item in enumerate(items, start=1):
+        date = item['date'].isoformat() if item['date'] else 'не указана'
+        output.append(f"[{n}] [{item['kind']}] {item['title']} | дата публикации: {date} | источник: {item['source']} | URL: {item['link']}\nОписание из ленты: {item['summary']}")
+    return '\n\n'.join(output)
 
 
-def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else "news"
-    if mode not in ("news", "weekly"):
-        print("Режим должен быть news или weekly")
+def gemini(prompt, model):
+    key = os.environ.get('GEMINI_API_KEY')
+    if not key:
+        raise RuntimeError('Missing GEMINI_API_KEY')
+    endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + urllib.parse.quote(model, safe='-._') + ':generateContent'
+    body = json.dumps({'contents': [{'parts': [{'text': prompt}]}], 'generationConfig': {'temperature': 0.15, 'maxOutputTokens': 6500}}).encode()
+    payload = request(endpoint, data=body, headers={'Content-Type': 'application/json', 'x-goog-api-key': key}, timeout=90)
+    response = json.loads(payload)
+    candidates = response.get('candidates') or []
+    parts = (candidates[0].get('content') or {}).get('parts') or [] if candidates else []
+    result = ''.join(part.get('text', '') for part in parts).strip()
+    if not result:
+        raise RuntimeError('Gemini returned no text; check model, quota and safety status')
+    return result
+
+
+def split_telegram(text, max_length=3800):
+    result = []
+    while text:
+        if len(text) <= max_length:
+            result.append(text)
+            break
+        pos = text.rfind('\n', 0, max_length)
+        if pos < max_length // 3:
+            pos = max_length
+        result.append(text[:pos].rstrip())
+        text = text[pos:].lstrip('\n')
+    return result
+
+
+def telegram(message):
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat = os.environ.get('TELEGRAM_CHAT_ID')
+    if not token or not chat:
+        raise RuntimeError('Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID')
+    for chunk in split_telegram(message):
+        payload = urllib.parse.urlencode({'chat_id': chat, 'text': chunk, 'disable_web_page_preview': 'true'}).encode()
+        request(f'https://api.telegram.org/bot{token}/sendMessage', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'}, timeout=35)
+
+
+def prompt_for(items, config, *, mode, now, event_note):
+    focus = '\n'.join('- ' + x for x in config['directions'])
+    heading = 'НЕДЕЛЬНЫЙ АНАЛИТИЧЕСКИЙ ОБЗОР' if mode == 'weekly' else 'ЕЖЕДНЕВНЫЙ ДАЙДЖЕСТ'
+    return f'''Ты аналитик технологий. Пиши на русском языке для пользователя в Казахстане. Отчёт: {heading}.
+Текущая дата: {now.strftime('%Y-%m-%d')}; часовой пояс Asia/Oral.
+Приоритеты пользователя:\n{focus}
+Регион мероприятий: {config.get('event_locations', '')}.
+ПРАВИЛА:
+1. Используй только данные записей ниже. Ты не открывал оригинальные статьи; RSS-аннотации не подтверждают содержание статьи полностью. Не называй внешнюю проверку проведённой.
+2. Чётко помечай ФАКТ (согласно RSS), АНАЛИЗ, ПРЕДПОЛОЖЕНИЕ, ПРОГНОЗ. Не выдумывай дату, стоимость, условия или URL.
+3. Любое заявление производителя обозначай «компания сообщает/заявляет». Уверенность оценивать с учётом ограниченной проверки.
+4. В каждой рекомендации указывай конкретную пользу и URL из записи. Ссылайся только на предоставленные ссылки.
+5. Не включай прошедшие мероприятия; не предполагай сроки из даты публикации. Если дата мероприятия не указана, отметь «дата не подтверждена», не включай его в список проверенных будущих событий.
+6. Пиши кратко и содержательно, исключай рекламу и повторы. Приоритет: ИИ-агенты, GovTech, цифровая аналитика и AgriTech.
+7. Если материала для раздела нет, скажи об этом. Не заполняй раздел искусственно.
+8. Ответ — простой текст для Telegram, без Markdown и таблиц. Не добавляй служебные секреты и команды.
+Структура: ГЛАВНОЕ (3-5 наиболее важных), ИНСТРУМЕНТЫ (до 5), ПРЕДСТОЯЩИЕ МЕРОПРИЯТИЯ, ПРАКТИЧЕСКИЕ ШАГИ (до 3), ОГРАНИЧЕНИЯ И УВЕРЕННОСТЬ.
+Для недельного отчёта дополнительно выдели ТЕНДЕНЦИИ НЕДЕЛИ, указав конкретные записи как основание, и ПЛАН НА НЕДЕЛЮ.
+Статус источников событий: {event_note}.
+ЗАПИСИ:\n{fmt_items(items)}'''
+
+
+def main(argv=None):
+    argv = argv or sys.argv[1:]
+    mode = argv[0] if argv else 'news'
+    if mode not in ('news', 'weekly'):
+        raise SystemExit('Usage: python digest.py [news|weekly]')
+    dry_run = os.environ.get('DRY_RUN') == '1'
+    config_path = Path(os.environ.get('CONFIG_PATH', BASE / 'config.json'))
+    config = json.loads(config_path.read_text(encoding='utf-8'))
+    zone = ZoneInfo(config.get('timezone', 'Asia/Oral'))
+    now = datetime.now(timezone.utc)
+    feeds = config.get('feeds', [])
+    events = config.get('events_feeds', [])
+    if not feeds and not events:
+        raise RuntimeError('No RSS feeds configured')
+    window = config['weekly_hours_back'] if mode == 'weekly' else config['hours_back']
+    articles, news_status = collect(feeds, kind='news', hours_back=window, per_feed=config['max_items_per_feed'], now=now)
+    event_items, event_status = collect(events, kind='events', hours_back=window, per_feed=config['max_items_per_feed'], now=now)
+    # Events are selected by actual event date only when the feed exposes one. A post timestamp is not an event date.
+    for ev in event_items:
+        ev['kind'] = 'event_announcement'
+    status = news_status + event_status
+    for result in status:
+        LOG.info('%s %s (%s)', result['status'], result['feed'], result.get('count', result.get('reason', '')))
+    state_path = Path(os.environ.get('STATE_PATH', BASE / 'state.json'))
+    state = load_state(state_path)
+    selected = select_items(articles + event_items, state, total=config['max_items_total'], now=now, allow_seen=(mode == 'weekly'))
+    event_note = 'источники не настроены' if not events else 'анонсы получены, фактические даты мероприятий необходимо проверить в материалах'
+    if not selected:
+        LOG.info('No new records; report skipped')
+        return 0
+    prompt = prompt_for(selected, config, mode=mode, now=now.astimezone(zone), event_note=event_note)
+    if dry_run:
+        print(prompt)
+        return 0
+    result = gemini(prompt, os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash'))
+    failed = [s['feed'] for s in status if s['status'] == 'error']
+    if failed:
+        result += '\n\nСЛУЖЕБНО: Ошибки RSS: ' + ', '.join(failed)
+    telegram(result)
+    if mode == 'news':
+        for item in selected:
+            state[item['id']] = now.isoformat()
+        limit = now - timedelta(days=30)
+        state = {k: v for k, v in state.items() if (parse_date(v) or now) >= limit}
+        save_state(state_path, state)
+    LOG.info('Sent %s digest with %d items', mode, len(selected))
+    return 0
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
+    try:
+        sys.exit(main())
+    except Exception as exc:
+        LOG.error('Digest failed: %s', exc)
         sys.exit(1)
-    cfg_path = os.environ.get("CONFIG_PATH") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-    cfg = json.load(open(cfg_path, encoding="utf-8"))
-    hours = cfg["weekly_hours_back"] if mode == "weekly" else cfg["hours_back"]
-    if not cfg["feeds"] and not cfg["events_feeds"]:
-        print("В config.json нет лент. Добавьте RSS-адреса в feeds.")
-        sys.exit(1)
-    items, report = [], []
-    for kind, feeds in (("news", cfg["feeds"]), ("events", cfg["events_feeds"])):
-        got, rep = collect(feeds, cfg["max_items_per_feed"], hours, cfg["max_items_total"])
-        for e in got:
-            e["kind"] = kind
-        items += got
-        report += rep
-    items = items[: cfg["max_items_total"] + 20]
-    print("\n".join(report))
-    bad = [r for r in report if r.startswith("НЕ РАБОТАЕТ")]
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    if not items:
-        msg = "Отчёт не сформирован: не удалось получить свежие записи.\n" + "\n".join(report)
-    else:
-        fmt = WEEKLY_FORMAT if mode == "weekly" else DAILY_FORMAT
-        prompt = (COMMON_RULES + fmt).format(
-            directions="\n".join("- " + d for d in cfg["directions"]),
-            today=today, tz=cfg.get("timezone_note", "UTC"),
-            event_locations=cfg.get("event_locations", ""))
-        prompt += "\nЗАПИСИ:\n" + fmt_items(items)
-        if DRY:
-            print("--- ПРОМПТ (DRY_RUN) ---\n" + prompt[:6000])
-            return
-        msg = gemini(prompt)
-        if bad:
-            msg += "\n\nСлужебно: часть лент не открылась:\n" + "\n".join(bad)
-        if not cfg["events_feeds"]:
-            msg += "\n\nСлужебно: источники мероприятий пока не подключены."
-    if DRY:
-        print(msg)
-    else:
-        telegram(msg)
-
-
-if __name__ == "__main__":
-    main()
