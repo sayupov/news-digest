@@ -1,30 +1,30 @@
 {
-  "language": "русский",
-  "timezone_note": "Казахстан, UTC+5",
-  "directions": [
-    "Искусственный интеллект: новые модели GPT, Claude, Gemini, открытые модели, мультимодальные системы",
-    "ИИ-агенты: автономные ассистенты, мультиагентные системы, автоматизация, MCP, LangChain, n8n",
-    "Новые технологии: робототехника, ПО, технологические стартапы, полезные цифровые сервисы",
-    "GovTech: цифровизация госуправления, цифровое право, международный опыт ИИ в госсекторе",
-    "AgriTech: ИИ в сельском хозяйстве, прогнозирование, аналитика, субсидирование, цифровой мониторинг",
-    "Обучение и исследования: бесплатные курсы, научные публикации, гранты, образовательные программы",
-    "Мероприятия: конференции, вебинары, форумы, хакатоны, выставки, конкурсы"
-  ],
-  "event_locations": "Казахстан (Астана, Алматы, Уральск) и международные онлайн-мероприятия",
-  "max_items_per_feed": 12,
-  "max_items_total": 50,
-  "hours_back": 48,
+  "language": "ru",
+  "timezone": "Asia/Oral",
+  "event_locations": "Казахстан: Уральск, Астана, Алматы; международные онлайн-события",
+  "hours_back": 96,
   "weekly_hours_back": 168,
+  "max_items_per_feed": 15,
+  "max_news_for_ai": 12,
+  "max_article_fetch": 8,
+  "max_events": 7,
+  "event_days": 45,
+  "history_days": 60,
   "feeds": [
     "https://openai.com/news/rss.xml",
     "https://research.google/blog/rss/",
     "https://huggingface.co/blog/feed.xml",
-    "https://www.technologyreview.com/topic/artificial-intelligence/feed",
     "https://techcrunch.com/category/artificial-intelligence/feed/",
     "https://www.producthunt.com/feed?category=artificial-intelligence",
-    "https://mistral.ai/news/rss",
-    "https://blog.google/innovation-and-ai/technology/ai/rss/"
+    "https://blog.google/innovation-and-ai/technology/ai/rss/",
+    "https://agfundernews.com/feed/",
+    "https://news.google.com/rss/search?q=artificial%20intelligence%20Kazakhstan%20GovTech%20agriculture%20when%3A7d&hl=ru&gl=KZ&ceid=KZ%3Aru"
   ],
-  "events_feeds": [],
-  "timezone": "Asia/Oral"
+  "event_calendars": [
+    "https://it-news-and-events.info/ics/it-events.ics"
+  ],
+  "event_watch_pages": [
+    "https://astanahub.com/en/event/",
+    "https://events.linuxfoundation.org/calendar/ai-conferences/"
+  ]
 }
