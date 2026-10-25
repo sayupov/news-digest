@@ -1,0 +1,32 @@
+name: Daily digest
+
+on:
+  schedule:
+    # GitHub использует время UTC. Казахстан = UTC+5 (проверьте для вашей ситуации).
+    - cron: "0 3 * * *"      # новости каждый день, 08:00 по Казахстану
+    - cron: "0 12 * * 0"     # мероприятия по воскресеньям, 17:00 по Казахстану
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "news или events"
+        default: "news"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            if [ "${{ github.event.schedule }}" = "0 12 * * 0" ]; then MODE=events; else MODE=news; fi
+          fi
+          python digest.py "$MODE"
