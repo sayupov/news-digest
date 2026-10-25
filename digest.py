@@ -6,7 +6,7 @@
          python digest.py weekly   (расширенный еженедельный отчёт)
 Переменные окружения:
   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GEMINI_API_KEY  (секреты GitHub)
-  GEMINI_MODEL   (необязательно, по умолчанию gemini-2.5-flash)
+  GEMINI_MODEL   (необязательно: модель, которую пробовать первой)
   DRY_RUN=1      (ничего не отправлять, только показать, что получилось)
   CONFIG_PATH    (необязательно, путь к другому config.json, для тестов)
 """
@@ -16,7 +16,6 @@ from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 DRY = os.environ.get("DRY_RUN") == "1"
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 UA = {"User-Agent": "Mozilla/5.0 (news-digest-bot)"}
 
 
@@ -97,36 +96,46 @@ def collect(feeds, per_feed, hours_back, total):
     return uniq[:total], report
 
 
+MODEL_CANDIDATES = [
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash",
+    "gemini-flash-latest",
+    "gemini-3.8-flash",
+]
+
+
 def gemini(prompt):
+    """Пробует модели по очереди: Google часто убирает старые модели
+    или обнуляет бесплатную квоту. Следующая модель берётся при 404/403/429."""
     key = os.environ["GEMINI_API_KEY"]
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
-    body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2},
-    }).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Content-Type": "application/json", "x-goog-api-key": key})
-    try:
-        with urllib.request.urlopen(req, timeout=90) as r:
-            data = json.load(r)
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode(errors="replace")[:500]
-        hint = ""
-        if e.code in (400, 404):
-            try:
-                lst = json.load(urllib.request.urlopen(urllib.request.Request(
-                    "https://generativelanguage.googleapis.com/v1beta/models",
-                    headers={"x-goog-api-key": key}), timeout=30))
-                names = [m["name"] for m in lst.get("models", [])
-                         if "generateContent" in m.get("supportedGenerationMethods", [])]
-                hint = "\nДоступные модели: " + ", ".join(names[:25])
-            except Exception:
-                pass
-        raise RuntimeError(f"Gemini HTTP {e.code}: {detail}{hint}")
-    try:
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except Exception:
-        raise RuntimeError(f"Неожиданный ответ Gemini: {json.dumps(data)[:500]}")
+    candidates = ([os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else []) + MODEL_CANDIDATES
+    errors = []
+    for model in candidates:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        body = json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2},
+        }).encode()
+        req = urllib.request.Request(url, data=body, headers={
+            "Content-Type": "application/json", "x-goog-api-key": key})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                data = json.load(r)
+            text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            print(f"Модель Gemini: {model}")
+            return text
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace")[:300].replace("\n", " ")
+            errors.append(f"{model}: HTTP {e.code} {detail}")
+            print(f"Модель {model} не подошла: HTTP {e.code}")
+            if e.code in (403, 404, 429, 400):
+                continue
+            raise RuntimeError("; ".join(errors))
+        except (KeyError, IndexError, TypeError):
+            errors.append(f"{model}: неожиданный ответ")
+            continue
+    raise RuntimeError("Ни одна модель Gemini не сработала:\n" + "\n".join(errors))
 
 
 def telegram(text):
