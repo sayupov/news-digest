@@ -1,44 +1,29 @@
 {
-  "language": "ru",
   "timezone": "Asia/Oral",
-  "event_locations": "Казахстан: Уральск, Астана, Алматы; международные онлайн-события",
-  "hours_back": 96,
+  "hours_back": 72,
   "weekly_hours_back": 168,
-  "max_items_per_feed": 15,
-  "max_news_for_ai": 15,
-  "max_article_fetch": 8,
-  "max_events": 7,
-  "event_days": 45,
-  "history_days": 60,
+  "max_items_per_feed": 10,
+  "max_items_for_ai": 14,
+  "weekly_items_for_ai": 20,
+  "max_news": 5,
+  "weekly_max_news": 8,
+  "max_tools": 3,
+  "event_days": 14,
+  "weekly_event_days": 30,
+  "max_events": 5,
+  "history_days": 45,
   "feeds": [
     "https://openai.com/news/rss.xml",
-    "https://research.google/blog/rss/",
+    "https://www.technologyreview.com/topic/artificial-intelligence/feed",
     "https://huggingface.co/blog/feed.xml",
     "https://techcrunch.com/category/artificial-intelligence/feed/",
     "https://www.producthunt.com/feed?category=artificial-intelligence",
+    "https://research.google/blog/rss/",
     "https://blog.google/innovation-and-ai/technology/ai/rss/",
     "https://agfundernews.com/feed/",
     "https://news.google.com/rss/search?q=artificial%20intelligence%20Kazakhstan%20GovTech%20agriculture%20when%3A7d&hl=ru&gl=KZ&ceid=KZ%3Aru"
   ],
   "event_calendars": [
     "https://it-news-and-events.info/ics/it-events.ics"
-  ],
-  "event_watch_pages": [
-    "https://astanahub.com/en/event/",
-    "https://events.linuxfoundation.org/calendar/ai-conferences/"
-  ],
-  "max_social_per_source": 8,
-  "youtube_feeds": [
-    "https://www.youtube.com/feeds/videos.xml?channel_id=UC_x5XG1OV2P6uZZ5FSM9Ttw"
-  ],
-  "github_repositories": [
-    "langchain-ai/langchain",
-    "n8n-io/n8n",
-    "anthropics/anthropic-sdk-python"
-  ],
-  "bluesky_accounts": [
-    "hf.co",
-    "langchain.bsky.social"
-  ],
-  "telegram_channel_ids": []
+  ]
 }
