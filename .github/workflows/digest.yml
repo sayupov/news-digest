@@ -1,32 +1,74 @@
-name: Daily digest
+name: News digest
 
 on:
   schedule:
-    # GitHub использует время UTC. Казахстан = UTC+5 (проверьте для вашей ситуации).
-    - cron: "0 3 * * *"      # ежедневный отчёт, 08:00 по Казахстану
-    - cron: "0 12 * * 0"     # недельный обзор по воскресеньям, 17:00 по Казахстану
+    - cron: '0 3 * * *'    # ежедневно 08:00 по Казахстану (UTC+5)
+    - cron: '0 12 * * 0'   # недельный обзор по воскресеньям 17:00
   workflow_dispatch:
     inputs:
       mode:
-        description: "news или weekly"
-        default: "news"
+        description: 'Тип отчёта'
+        default: news
+        type: choice
+        options: [news, weekly]
+      dry_run:
+        description: 'Пробный запуск: ничего не отправлять и не сохранять'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # нужен только чтобы сохранить state.json (история, чтобы новости не повторялись)
+
+concurrency:
+  group: news-digest
+  cancel-in-progress: false
 
 jobs:
-  run:
+  digest:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Run
+          python-version: '3.12'
+
+      - name: Выбор режима
+        id: mode
+        shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          SELECTED: ${{ inputs.mode }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            echo "mode=${SELECTED:-news}" >> "$GITHUB_OUTPUT"
+          elif [ "$CRON" = '0 12 * * 0' ]; then
+            echo "mode=weekly" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=news" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Сформировать и отправить отчёт
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          STATE_PATH: state.json
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '0' }}
+        run: python digest.py '${{ steps.mode.outputs.mode }}'
+
+      - name: Сохранить историю (сбой здесь не ломает отчёт)
+        if: success() && steps.mode.outputs.mode == 'news' && inputs.dry_run != true
+        continue-on-error: true
+        shell: bash
         run: |
-          MODE="${{ github.event.inputs.mode }}"
-          if [ -z "$MODE" ]; then
-            if [ "${{ github.event.schedule }}" = "0 12 * * 0" ]; then MODE=weekly; else MODE=news; fi
+          if [ -f state.json ] && [ -n "$(git status --porcelain -- state.json)" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add state.json
+            git commit -m 'chore: update digest history [skip ci]'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
-          python digest.py "$MODE"
