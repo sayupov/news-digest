@@ -1,11 +1,27 @@
 {
   "language": "русский",
   "timezone_note": "Казахстан, UTC+5",
-  "topics": ["Казахстан", "экономика", "сельское хозяйство", "мир"],
-  "max_items_per_feed": 15,
-  "max_items_total": 45,
-  "hours_back": 36,
-  "feeds": [],
-  "events_feeds": [],
-  "events_hours_back": 168
+  "directions": [
+    "Искусственный интеллект: новые модели GPT, Claude, Gemini, открытые модели, мультимодальные системы",
+    "ИИ-агенты: автономные ассистенты, мультиагентные системы, автоматизация, MCP, LangChain, n8n",
+    "Новые технологии: робототехника, ПО, технологические стартапы, полезные цифровые сервисы",
+    "GovTech: цифровизация госуправления, цифровое право, международный опыт ИИ в госсекторе",
+    "AgriTech: ИИ в сельском хозяйстве, прогнозирование, аналитика, субсидирование, цифровой мониторинг",
+    "Обучение и исследования: бесплатные курсы, научные публикации, гранты, образовательные программы",
+    "Мероприятия: конференции, вебинары, форумы, хакатоны, выставки, конкурсы"
+  ],
+  "event_locations": "Казахстан (Астана, Алматы, Уральск) и международные онлайн-мероприятия",
+  "max_items_per_feed": 12,
+  "max_items_total": 50,
+  "hours_back": 48,
+  "weekly_hours_back": 168,
+  "feeds": [
+    "https://openai.com/news/rss.xml",
+    "https://deepmind.google/blog/rss.xml",
+    "https://huggingface.co/blog/feed.xml",
+    "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+    "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "https://www.producthunt.com/feed?category=artificial-intelligence"
+  ],
+  "events_feeds": []
 }
