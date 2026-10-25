@@ -1,0 +1,11 @@
+{
+  "language": "русский",
+  "timezone_note": "Казахстан, UTC+5",
+  "topics": ["Казахстан", "экономика", "сельское хозяйство", "мир"],
+  "max_items_per_feed": 15,
+  "max_items_total": 45,
+  "hours_back": 36,
+  "feeds": [],
+  "events_feeds": [],
+  "events_hours_back": 168
+}
