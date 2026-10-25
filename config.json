@@ -17,11 +17,14 @@
   "weekly_hours_back": 168,
   "feeds": [
     "https://openai.com/news/rss.xml",
-    "https://deepmind.google/blog/rss.xml",
+    "https://research.google/blog/rss/",
     "https://huggingface.co/blog/feed.xml",
     "https://www.technologyreview.com/topic/artificial-intelligence/feed",
     "https://techcrunch.com/category/artificial-intelligence/feed/",
-    "https://www.producthunt.com/feed?category=artificial-intelligence"
+    "https://www.producthunt.com/feed?category=artificial-intelligence",
+    "https://mistral.ai/news/rss",
+    "https://blog.google/innovation-and-ai/technology/ai/rss/"
   ],
-  "events_feeds": []
+  "events_feeds": [],
+  "timezone": "Asia/Oral"
 }
