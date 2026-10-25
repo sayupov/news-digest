@@ -5,7 +5,7 @@
   "hours_back": 96,
   "weekly_hours_back": 168,
   "max_items_per_feed": 15,
-  "max_news_for_ai": 12,
+  "max_news_for_ai": 15,
   "max_article_fetch": 8,
   "max_events": 7,
   "event_days": 45,
@@ -26,5 +26,19 @@
   "event_watch_pages": [
     "https://astanahub.com/en/event/",
     "https://events.linuxfoundation.org/calendar/ai-conferences/"
-  ]
+  ],
+  "max_social_per_source": 8,
+  "youtube_feeds": [
+    "https://www.youtube.com/feeds/videos.xml?channel_id=UC_x5XG1OV2P6uZZ5FSM9Ttw"
+  ],
+  "github_repositories": [
+    "langchain-ai/langchain",
+    "n8n-io/n8n",
+    "anthropics/anthropic-sdk-python"
+  ],
+  "bluesky_accounts": [
+    "hf.co",
+    "langchain.bsky.social"
+  ],
+  "telegram_channel_ids": []
 }
