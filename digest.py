@@ -6,7 +6,7 @@
          python digest.py weekly   (расширенный еженедельный отчёт)
 Переменные окружения:
   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GEMINI_API_KEY  (секреты GitHub)
-  GEMINI_MODEL   (необязательно, по умолчанию gemini-2.0-flash)
+  GEMINI_MODEL   (необязательно, по умолчанию gemini-2.5-flash)
   DRY_RUN=1      (ничего не отправлять, только показать, что получилось)
   CONFIG_PATH    (необязательно, путь к другому config.json, для тестов)
 """
@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 DRY = os.environ.get("DRY_RUN") == "1"
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 UA = {"User-Agent": "Mozilla/5.0 (news-digest-bot)"}
 
 
