@@ -3,12 +3,12 @@ name: Daily digest
 on:
   schedule:
     # GitHub использует время UTC. Казахстан = UTC+5 (проверьте для вашей ситуации).
-    - cron: "0 3 * * *"      # новости каждый день, 08:00 по Казахстану
-    - cron: "0 12 * * 0"     # мероприятия по воскресеньям, 17:00 по Казахстану
+    - cron: "0 3 * * *"      # ежедневный отчёт, 08:00 по Казахстану
+    - cron: "0 12 * * 0"     # недельный обзор по воскресеньям, 17:00 по Казахстану
   workflow_dispatch:
     inputs:
       mode:
-        description: "news или events"
+        description: "news или weekly"
         default: "news"
 
 jobs:
@@ -27,6 +27,6 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode }}"
           if [ -z "$MODE" ]; then
-            if [ "${{ github.event.schedule }}" = "0 12 * * 0" ]; then MODE=events; else MODE=news; fi
+            if [ "${{ github.event.schedule }}" = "0 12 * * 0" ]; then MODE=weekly; else MODE=news; fi
           fi
           python digest.py "$MODE"
