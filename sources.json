@@ -1,0 +1,605 @@
+{
+  "description": "100 источников для ротационного анализа новостей и исследований.",
+  "sources": [
+    {
+      "category": "Государство",
+      "name": "Gov.kz",
+      "url": "https://www.gov.kz/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "МСХ РК",
+      "url": "https://www.gov.kz/org/moa?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "БНС РК",
+      "url": "https://stat.gov.kz/ru/",
+      "enabled": true
+    },
+    {
+      "category": "Право",
+      "name": "Әділет",
+      "url": "https://adilet.zan.kz/rus",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "Открытые данные",
+      "url": "https://data.egov.kz/",
+      "enabled": true
+    },
+    {
+      "category": "Бюджет",
+      "name": "Открытые бюджеты",
+      "url": "https://budget.egov.kz/",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "Открытое правительство",
+      "url": "https://open.egov.kz/",
+      "enabled": true
+    },
+    {
+      "category": "Право",
+      "name": "Открытые НПА",
+      "url": "https://legalacts.egov.kz/",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "eOtinish",
+      "url": "https://eotinish.gov.kz/",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "Премьер-министр РК",
+      "url": "https://primeminister.kz/ru",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "Акорда",
+      "url": "https://www.akorda.kz/ru",
+      "enabled": true
+    },
+    {
+      "category": "Право",
+      "name": "Мажилис",
+      "url": "https://www.parlam.kz/ru/mazhilis",
+      "enabled": true
+    },
+    {
+      "category": "Право",
+      "name": "Сенат",
+      "url": "https://senate.parlam.kz/ru-RU",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "Высшая аудиторская палата",
+      "url": "https://www.gov.kz/memleket/entities/esep?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "Антикор",
+      "url": "https://www.gov.kz/memleket/entities/anticorruption?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Экономика",
+      "name": "Минфин РК",
+      "url": "https://www.gov.kz/memleket/entities/minfin?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Экономика",
+      "name": "МНЭ РК",
+      "url": "https://www.gov.kz/memleket/entities/economy?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Экономика",
+      "name": "Нацбанк РК",
+      "url": "https://nationalbank.kz/ru",
+      "enabled": true
+    },
+    {
+      "category": "Государство",
+      "name": "АСПИР РК",
+      "url": "https://www.gov.kz/memleket/entities/aspir?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "GovTech",
+      "name": "МЦРИАП РК",
+      "url": "https://www.gov.kz/memleket/entities/mdai?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "ЗКО",
+      "name": "Акимат ЗКО",
+      "url": "https://www.gov.kz/memleket/entities/bko?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "ЗКО",
+      "name": "Маслихат ЗКО",
+      "url": "https://www.gov.kz/memleket/entities/maslihat-bko?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "Управление сельского хозяйства ЗКО",
+      "url": "https://www.gov.kz/memleket/entities/bko-agriculture?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Астана",
+      "name": "Акимат Астаны",
+      "url": "https://www.gov.kz/memleket/entities/astana?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Астана",
+      "name": "Маслихат Астаны",
+      "url": "https://www.gov.kz/memleket/entities/astana-maslihat?lang=ru",
+      "enabled": true
+    },
+    {
+      "category": "Бизнес",
+      "name": "Atameken",
+      "url": "https://atameken.kz/ru",
+      "enabled": true
+    },
+    {
+      "category": "Инвестиции",
+      "name": "Kazakh Invest",
+      "url": "https://invest.gov.kz/ru/",
+      "enabled": true
+    },
+    {
+      "category": "Торговля",
+      "name": "QazTrade",
+      "url": "https://qaztrade.org.kz/ru",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "KazAgroFinance",
+      "url": "https://kazagrofinance.kz/ru/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "Аграрная кредитная корпорация",
+      "url": "https://www.agrocredit.kz/ru/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "OECD AI",
+      "url": "https://oecd.ai/en/",
+      "enabled": true
+    },
+    {
+      "category": "GovTech",
+      "name": "OECD OPSI",
+      "url": "https://oecd-opsi.org/",
+      "enabled": true
+    },
+    {
+      "category": "Политика",
+      "name": "OECD",
+      "url": "https://www.oecd.org/",
+      "enabled": true
+    },
+    {
+      "category": "GovTech",
+      "name": "World Bank GovTech",
+      "url": "https://www.worldbank.org/en/programs/govtech",
+      "enabled": true
+    },
+    {
+      "category": "GovTech",
+      "name": "UN E-Government",
+      "url": "https://publicadministration.un.org/egovkb/en-us/",
+      "enabled": true
+    },
+    {
+      "category": "Развитие",
+      "name": "UNDP Kazakhstan",
+      "url": "https://www.undp.org/kazakhstan",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "UNESCO AI Ethics",
+      "url": "https://www.unesco.org/en/artificial-intelligence/recommendation-ethics",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Council of Europe AI",
+      "url": "https://www.coe.int/en/web/artificial-intelligence",
+      "enabled": true
+    },
+    {
+      "category": "GovTech",
+      "name": "EU Digital",
+      "url": "https://digital-strategy.ec.europa.eu/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "EU AI Office",
+      "url": "https://digital-strategy.ec.europa.eu/en/policies/ai-office",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "NIST AI RMF",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "GPAI",
+      "url": "https://gpai.ai/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "GOV.UK AI",
+      "url": "https://www.gov.uk/government/collections/artificial-intelligence",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Singapore AI",
+      "url": "https://www.smartnation.gov.sg/initiatives/artificial-intelligence/",
+      "enabled": true
+    },
+    {
+      "category": "Исследования",
+      "name": "JRC",
+      "url": "https://joint-research-centre.ec.europa.eu/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "OpenAI",
+      "url": "https://openai.com/news/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Anthropic",
+      "url": "https://www.anthropic.com/news",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Google DeepMind",
+      "url": "https://deepmind.google/discover/blog/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Microsoft AI",
+      "url": "https://www.microsoft.com/en-us/ai",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Meta AI",
+      "url": "https://ai.meta.com/blog/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Hugging Face",
+      "url": "https://huggingface.co/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Mistral AI",
+      "url": "https://mistral.ai/news/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Cohere",
+      "url": "https://cohere.com/blog",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "NVIDIA AI",
+      "url": "https://blogs.nvidia.com/blog/category/deep-learning/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "AWS ML Blog",
+      "url": "https://aws.amazon.com/blogs/machine-learning/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Google AI Developers",
+      "url": "https://ai.google.dev/",
+      "enabled": true
+    },
+    {
+      "category": "Разработка",
+      "name": "GitHub Trending",
+      "url": "https://github.com/trending",
+      "enabled": true
+    },
+    {
+      "category": "Автоматизация",
+      "name": "n8n",
+      "url": "https://n8n.io/workflows/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "LangChain",
+      "url": "https://blog.langchain.dev/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "LlamaIndex",
+      "url": "https://www.llamaindex.ai/blog",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "FAO",
+      "url": "https://www.fao.org/home/en",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "FAOSTAT",
+      "url": "https://www.fao.org/faostat/en/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "FAO Digital Agriculture",
+      "url": "https://www.fao.org/digital-agriculture/en/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "OECD Agriculture",
+      "url": "https://www.oecd.org/en/topics/agriculture-and-food.html",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "World Bank Agriculture",
+      "url": "https://www.worldbank.org/en/topic/agriculture",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "CGIAR",
+      "url": "https://www.cgiar.org/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "IFPRI",
+      "url": "https://www.ifpri.org/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "USDA ERS",
+      "url": "https://www.ers.usda.gov/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "USDA FAS",
+      "url": "https://www.fas.usda.gov/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "CABI",
+      "url": "https://www.cabi.org/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "AGROVOC",
+      "url": "https://www.fao.org/agrovoc/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "World Agri-Tech",
+      "url": "https://worldagritechinnovation.com/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "AgFunderNews",
+      "url": "https://agfundernews.com/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "Precision Agriculture",
+      "url": "https://www.precisionag.com/",
+      "enabled": true
+    },
+    {
+      "category": "АПК",
+      "name": "EIT Food",
+      "url": "https://www.eitfood.eu/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "Our World in Data",
+      "url": "https://ourworldindata.org/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "World Bank Data",
+      "url": "https://data.worldbank.org/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "IMF Data",
+      "url": "https://data.imf.org/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "UNData",
+      "url": "https://data.un.org/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "Eurostat",
+      "url": "https://ec.europa.eu/eurostat/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "OECD Data Explorer",
+      "url": "https://data-explorer.oecd.org/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "UN Comtrade",
+      "url": "https://comtradeplus.un.org/",
+      "enabled": true
+    },
+    {
+      "category": "Наука",
+      "name": "Google Scholar",
+      "url": "https://scholar.google.com/",
+      "enabled": true
+    },
+    {
+      "category": "Наука",
+      "name": "arXiv AI",
+      "url": "https://arxiv.org/list/cs.AI/recent",
+      "enabled": true
+    },
+    {
+      "category": "Наука",
+      "name": "Papers with Code",
+      "url": "https://paperswithcode.com/",
+      "enabled": true
+    },
+    {
+      "category": "Данные",
+      "name": "Kaggle",
+      "url": "https://www.kaggle.com/",
+      "enabled": true
+    },
+    {
+      "category": "Наука",
+      "name": "SSRN",
+      "url": "https://www.ssrn.com/",
+      "enabled": true
+    },
+    {
+      "category": "Наука",
+      "name": "Zenodo",
+      "url": "https://zenodo.org/",
+      "enabled": true
+    },
+    {
+      "category": "Наука",
+      "name": "ResearchGate",
+      "url": "https://www.researchgate.net/",
+      "enabled": true
+    },
+    {
+      "category": "ИИ",
+      "name": "Stanford AI Index",
+      "url": "https://aiindex.stanford.edu/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Astana Hub Events",
+      "url": "https://astanahub.com/ru/event/calendar/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Digital Bridge",
+      "url": "https://digitalbridge.kz/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Ticketon Astana",
+      "url": "https://ticketon.kz/astana",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Teatr.kz",
+      "url": "https://teatr.kz/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Киноафиша Астаны",
+      "url": "https://www.kinoafisha.info/astana/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Qazaqconcert",
+      "url": "https://qazaqconcert.kz/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Astana Opera",
+      "url": "https://astanaopera.kz/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Astana Ballet",
+      "url": "https://astanaballet.com/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "Национальный музей РК",
+      "url": "https://nationalmuseum.kz/",
+      "enabled": true
+    },
+    {
+      "category": "События",
+      "name": "American Space Astana",
+      "url": "https://www.instagram.com/americanspaceastana/",
+      "enabled": true
+    }
+  ]
+}
