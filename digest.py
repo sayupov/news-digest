@@ -377,10 +377,50 @@ def relevant_event(ev: dict) -> bool:
     return bool(EVENT_AI.search(text) and EVENT_TYPE.search(text))
 
 
+def catalog_feeds(cfg: dict, now: datetime) -> list[str]:
+    """Turn a rotating batch of website domains into Google News RSS queries.
+
+    The catalog stores normal website addresses, not invented RSS URLs. Google
+    News RSS is used only as a public index to find recent publications from
+    the selected domain. A small batch keeps each GitHub Actions run reliable.
+    """
+    filename = cfg.get("source_catalog")
+    if not filename:
+        return []
+    try:
+        catalog = json.loads((ROOT / filename).read_text(encoding="utf-8"))
+        sources = [s for s in catalog.get("sources", []) if s.get("enabled", True)]
+    except (OSError, ValueError, TypeError):
+        LOG.warning("каталог источников не прочитан")
+        return []
+    unique, seen = [], set()
+    for source in sources:
+        url = source.get("url", "")
+        domain = urllib.parse.urlsplit(url).hostname
+        if not domain:
+            continue
+        domain = domain.lower().removeprefix("www.")
+        if domain in seen:
+            continue
+        seen.add(domain)
+        unique.append(domain)
+    if not unique:
+        return []
+    size = max(1, min(int(cfg.get("source_batch_size", 8)), len(unique)))
+    start = now.astimezone(ZoneInfo(cfg.get("timezone", "Asia/Oral"))).date().toordinal() % len(unique)
+    selected = [unique[(start + offset) % len(unique)] for offset in range(size)]
+    return [
+        "https://news.google.com/rss/search?" + urllib.parse.urlencode(
+            {"q": f"site:{domain}", "hl": "ru", "gl": "KZ", "ceid": "KZ:ru"}
+        )
+        for domain in selected
+    ]
+
+
 def collect_news(cfg: dict, now: datetime, hours: int) -> tuple[list[dict], list[dict]]:
     items, status = [], []
     cutoff = now - timedelta(hours=hours)
-    for url in cfg.get("feeds", []):
+    for url in [*cfg.get("feeds", []), *catalog_feeds(cfg, now)]:
         try:
             records = parse_feed(fetch(url, attempts=2, timeout=15), url)
             fresh = sorted((r for r in records if cutoff <= r["date"] <= now + timedelta(hours=2)),
