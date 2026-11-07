@@ -25,5 +25,7 @@
   ],
   "event_calendars": [
     "https://it-news-and-events.info/ics/it-events.ics"
-  ]
+  ],
+  "source_catalog": "sources.json",
+  "source_batch_size": 8
 }
